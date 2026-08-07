@@ -8,6 +8,14 @@ type WeatherData = {
   humidity: number;
   windSpeed: number;
   weatherCode: number;
+  forecast: ForecastDay[];
+};
+
+type ForecastDay = {
+  date: string;
+  high: number;
+  low: number;
+  weatherCode: number;
 };
 
 function getWeatherDetails(weatherCode: number) {
@@ -45,6 +53,12 @@ function getWeatherDetails(weatherCode: number) {
 
   return { icon: "🌡️", label: "Unknown" };
 }
+function formatDay(date: string) {
+  return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
+    weekday: "short",
+  });
+}
+
 export default function Home() {
   const [city, setCity] = useState("");
   const [searchedCity, setSearchedCity] = useState("Indianapolis");
@@ -55,6 +69,7 @@ export default function Home() {
     humidity: 45,
     windSpeed: 9,
     weatherCode: 0,
+    forecast: [],
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +104,7 @@ export default function Home() {
       }
 
       const weatherResponse = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`,
       );
 
       if (!weatherResponse.ok) {
@@ -110,6 +125,12 @@ export default function Home() {
         humidity: weatherData.current.relative_humidity_2m,
         windSpeed: weatherData.current.wind_speed_10m,
         weatherCode: weatherData.current.weather_code,
+        forecast: weatherData.daily.time.map((date: string, index: number) => ({
+          date,
+          high: weatherData.daily.temperature_2m_max[index],
+          low: weatherData.daily.temperature_2m_min[index],
+          weatherCode: weatherData.daily.weather_code[index],
+        })),
       });
     } catch (error) {
       setError(
@@ -171,6 +192,36 @@ export default function Home() {
                 {weather.windSpeed} mph
               </p>
             </div>
+          </div>
+        </article>
+        <article className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">5-day forecast</h2>
+
+          <div className="mt-5 grid grid-cols-5 gap-2">
+            {weather.forecast.map((day) => {
+              const dayDetails = getWeatherDetails(day.weatherCode);
+
+              return (
+                <div
+                  className="rounded-2xl bg-sky-50 p-3 text-center"
+                  key={day.date}
+                >
+                  <p className="text-xs font-medium text-slate-500">
+                    {formatDay(day.date)}
+                  </p>
+
+                  <p className="mt-2 text-2xl">{dayDetails.icon}</p>
+
+                  <p className="mt-2 text-sm font-medium">
+                    {Math.round(day.high)}°
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    {Math.round(day.low)}°
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </article>
       </section>
