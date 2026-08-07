@@ -53,6 +53,37 @@ function getWeatherDetails(weatherCode: number) {
 
   return { icon: "🌡️", label: "Unknown" };
 }
+
+function getBackgroundClass(weatherCode: number) {
+  if (weatherCode === 0) {
+    return "bg-gradient-to-b from-sky-300 via-slate-100 to-white";
+  }
+
+  if ([1, 2].includes(weatherCode)) {
+    return "bg-gradient-to-b from-sky-200 via-slate-100 to-white";
+  }
+
+  if ([3, 45, 48].includes(weatherCode)) {
+    return "bg-gradient-to-b from-slate-300 via-slate-100 to-white";
+  }
+
+  if (
+    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)
+  ) {
+    return "bg-gradient-to-b from-slate-400 via-sky-200 to-slate-50";
+  }
+
+  if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) {
+    return "bg-gradient-to-b from-sky-100 via-white to-blue-50";
+  }
+
+  if ([95, 96, 99].includes(weatherCode)) {
+    return "bg-gradient-to-b from-slate-600 via-indigo-300 to-slate-100";
+  }
+
+  return "bg-sky-50";
+}
+
 function formatDay(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
     weekday: "short",
@@ -142,13 +173,46 @@ export default function Home() {
   }
 
   const weatherDetails = getWeatherDetails(weather.weatherCode);
+  const backgroundClass = getBackgroundClass(weather.weatherCode);
+  const isClear = weather.weatherCode === 0;
+  const isCloudy = [1, 2, 3].includes(weather.weatherCode);
+  const isRainy = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(
+    weather.weatherCode,
+  );
   return (
-    <main className="min-h-screen bg-sky-50 px-6 py-12 text-slate-600">
-      <section>
+    <main
+      className={`relative min-h-screen overflow-hidden ${backgroundClass} px-6 py-12 text-slate-600`}
+    >
+      {isClear && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/80 blur-3xl"
+        />
+      )}
+      {isCloudy && (
+        <>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-16 top-24 h-28 w-72 rounded-full bg-white/45 blur-2xl"
+          />
+
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-12 top-56 h-24 w-64 rounded-full bg-white/35 blur-2xl"
+          />
+        </>
+      )}
+      {isRainy && (
+        <div
+          aria-hidden="true"
+          className="rain-overlay pointer-events-none absolute inset-0 opacity-25"
+        />
+      )}
+      <section className="relative mx-auto max-w-xl">
         <h1 className="text-2xl font-semibold">Weatherly</h1>
         <form className="mt-8 flex gap-3" onSubmit={handleSearch}>
           <input
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white/85 backdrop-blur-sm px-4 py-3 shadow-sm outline-none"
             placeholder="Search for a city..."
             type="search"
             value={city}
@@ -168,16 +232,16 @@ export default function Home() {
             {error}
           </p>
         )}
-        <article className="mt-6 rounded-3xl bg-white p-8 shadow-sm">
+        <article className="mt-6 rounded-3xl bg-white/80 backdrop-blur-sm p-8 shadow-sm">
           <p className="text-lg text-slate-500">{searchedCity}</p>
 
           <div className="mt-6 flex items-center gap-5">
             <span className="text-6xl">{weatherDetails.icon}</span>
-            <p className="text-6xl font-light">{weather.temperature}°</p>
+            <p className="text-6xl font-light">{Math.round(weather.temperature)}°</p>
           </div>
 
           <p className="mt-4 text-slate-600">
-            {weatherDetails.label} · Feels like {weather.feelsLike}°
+            {weatherDetails.label} · Feels like {Math.round(weather.feelsLike)}°
           </p>
 
           <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
