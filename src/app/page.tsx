@@ -114,6 +114,17 @@ export default function Home() {
   }, [city, isLocationSelected]);
 
   async function handleLocationSelect(location: LocationOption) {
+    const locationLabel = location.admin1
+      ? `${location.name}, ${location.admin1}`
+      : location.name;
+
+    setCity(locationLabel);
+    setIsLocationSelected(true);
+    setWeather((currentWeather) => ({
+      ...currentWeather,
+      locationName: locationLabel,
+    }));
+
     setIsLoading(true);
     setError("");
     setLocationOptions([]);
@@ -129,12 +140,6 @@ export default function Home() {
 
       const weatherData = await weatherResponse.json();
 
-      const locationLabel = location.admin1
-        ? `${location.name}, ${location.admin1}`
-        : location.name;
-
-      setCity(locationLabel);
-      setIsLocationSelected(true);
       setWeather({
         locationName: locationLabel,
         temperature: weatherData.current.temperature_2m,
