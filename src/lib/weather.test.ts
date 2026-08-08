@@ -1,0 +1,58 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  getBackgroundClass,
+  getWeatherDetails,
+  isSnowy,
+  isStormy,
+} from "./weather";
+
+describe("getWeatherDetails", () => {
+  it("returns clear weather details for code 0", () => {
+    expect(getWeatherDetails(0)).toEqual({
+      icon: "☀️",
+      label: "Clear",
+    });
+  });
+
+  it("returns rain weather details for code 63", () => {
+    expect(getWeatherDetails(63)).toEqual({
+      icon: "🌧️",
+      label: "Rain",
+    });
+  });
+
+  it("returns snow weather details for code 73", () => {
+    expect(getWeatherDetails(73)).toEqual({
+      icon: "❄️",
+      label: "Snow",
+    });
+  });
+
+  it("returns thunderstorm details for code 95", () => {
+    expect(getWeatherDetails(95)).toEqual({
+      icon: "⛈️",
+      label: "Thunderstorm",
+    });
+  });
+
+  it("returns unknown details for an unsupported code", () => {
+    expect(getWeatherDetails(999)).toEqual({
+      icon: "🌡️",
+      label: "Unknown",
+    });
+  });
+});
+
+describe("weather background helpers", () => {
+  it("uses a dark background for thunderstorms", () => {
+    expect(getBackgroundClass(95)).toContain("from-slate-600");
+  });
+
+  it("identifies snow and thunderstorm codes", () => {
+    expect(isSnowy(73)).toBe(true);
+    expect(isSnowy(63)).toBe(false);
+    expect(isStormy(95)).toBe(true);
+    expect(isStormy(0)).toBe(false);
+  });
+});

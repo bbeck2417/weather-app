@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   getBackgroundClass,
   getWeatherDetails,
@@ -52,8 +52,55 @@ export default function Home() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearchingLocations, setIsSearchingLocations] = useState(false);
   const [error, setError] = useState("");
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
+
+  useEffect(() => {
+    const searchTerm = city.trim();
+
+    if (searchTerm.length < 2) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const timeoutId = window.setTimeout(async () => {
+      setIsSearchingLocations(true);
+      setError("");
+
+      try {
+        const locationResponse = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchTerm)}&count=5&language=en&format=json`,
+          { signal: controller.signal },
+        );
+
+        if (!locationResponse.ok) {
+          throw new Error("Unable to search for locations.");
+        }
+
+        const locationData = await locationResponse.json();
+        const locations: LocationOption[] = locationData.results ?? [];
+
+        setLocationOptions(locations);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setError(
+          error instanceof Error ? error.message : "Something went wrong.",
+        );
+      } finally {
+        setIsSearchingLocations(false);
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [city]);
 
   async function handleSearch(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -114,7 +161,6 @@ export default function Home() {
         : location.name;
 
       setSearchedCity(locationLabel);
-      setCity(locationLabel);
 
       setWeather({
         temperature: weatherData.current.temperature_2m,
@@ -204,7 +250,10 @@ export default function Home() {
             placeholder="Search for a city..."
             type="search"
             value={city}
-            onChange={(event) => setCity(event.target.value)}
+            onChange={(event) => {
+              setCity(event.target.value);
+              setLocationOptions([]);
+            }}
           />
 
           <button
@@ -215,6 +264,9 @@ export default function Home() {
             {isLoading ? "Loading..." : "Search"}
           </button>
         </form>
+        {isSearchingLocations && (
+          <p className="mt-3 text-sm text-slate-600">Searching locations...</p>
+        )}
         {locationOptions.length > 0 && (
           <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm">
             <p className="px-4 py-3 text-sm font-medium text-slate-600">
