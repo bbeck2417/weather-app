@@ -8,6 +8,7 @@ import {
   isSnowy,
   isStormy,
 } from "@/lib/weather";
+import { normalizeUsState } from "@/lib/locations";
 
 type LocationOption = {
   name: string;
@@ -132,6 +133,7 @@ export default function Home() {
         }
 
         const { city: cityName, region } = parseLocationQuery(searchTerm);
+        const stateName = normalizeUsState(region);
 
         const locationResponse = await fetch(
           `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=10&language=en&format=json`,
@@ -145,10 +147,10 @@ export default function Home() {
         const locationData = await locationResponse.json();
         const locations: LocationOption[] = locationData.results ?? [];
 
-        const filteredLocations = region
+        const filteredLocations = stateName
           ? locations.filter(
               (location) =>
-                location.admin1?.toLowerCase() === region.toLowerCase(),
+                location.admin1?.toLowerCase() === stateName.toLowerCase(),
             )
           : locations;
 
