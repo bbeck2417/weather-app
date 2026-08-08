@@ -31,6 +31,7 @@ type WeatherData = {
   weatherCode: number;
   forecast: ForecastDay[];
   hourly: HourlyForecast[];
+  locationName: string;
 };
 
 type ForecastDay = {
@@ -48,7 +49,6 @@ function formatDay(date: string) {
 
 export default function Home() {
   const [city, setCity] = useState("");
-  const [searchedCity, setSearchedCity] = useState("Indianapolis");
 
   const [weather, setWeather] = useState<WeatherData>({
     temperature: 74,
@@ -58,6 +58,7 @@ export default function Home() {
     weatherCode: 0,
     forecast: [],
     hourly: [],
+    locationName: "Indianapolis",
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -132,10 +133,10 @@ export default function Home() {
         ? `${location.name}, ${location.admin1}`
         : location.name;
 
-      setSearchedCity(locationLabel);
       setCity(locationLabel);
       setIsLocationSelected(true);
       setWeather({
+        locationName: locationLabel,
         temperature: weatherData.current.temperature_2m,
         feelsLike: weatherData.current.apparent_temperature,
         humidity: weatherData.current.relative_humidity_2m,
@@ -278,7 +279,7 @@ export default function Home() {
           </p>
         )}
         <article className="mt-6 rounded-3xl bg-white/80 backdrop-blur-sm p-8 shadow-sm">
-          <p className="text-lg text-slate-500">{searchedCity}</p>
+          <p className="text-lg text-slate-500">{weather.locationName}</p>
 
           <div className="mt-6 flex items-center gap-5">
             <span className="text-6xl">{weatherDetails.icon}</span>
