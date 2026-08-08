@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatHour,
   getBackgroundClass,
   getWeatherDetails,
   isSnowy,
@@ -54,5 +55,13 @@ describe("weather background helpers", () => {
     expect(isSnowy(63)).toBe(false);
     expect(isStormy(95)).toBe(true);
     expect(isStormy(0)).toBe(false);
+  });
+});
+
+describe("formatHour", () => {
+  it("formats midnight, noon, and late-night hours", () => {
+    expect(formatHour("2026-08-08T00:00")).toBe("12 AM");
+    expect(formatHour("2026-08-08T12:00")).toBe("12 PM");
+    expect(formatHour("2026-08-08T23:00")).toBe("11 PM");
   });
 });

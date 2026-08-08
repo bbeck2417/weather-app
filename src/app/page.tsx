@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
+  formatHour,
   getBackgroundClass,
   getWeatherDetails,
   isSnowy,
@@ -16,6 +17,12 @@ type LocationOption = {
   longitude: number;
 };
 
+type HourlyForecast = {
+  time: string;
+  temperature: number;
+  weatherCode: number;
+};
+
 type WeatherData = {
   temperature: number;
   feelsLike: number;
@@ -23,6 +30,7 @@ type WeatherData = {
   windSpeed: number;
   weatherCode: number;
   forecast: ForecastDay[];
+  hourly: HourlyForecast[];
 };
 
 type ForecastDay = {
@@ -49,6 +57,7 @@ export default function Home() {
     windSpeed: 9,
     weatherCode: 0,
     forecast: [],
+    hourly: [],
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -147,7 +156,7 @@ export default function Home() {
 
     try {
       const weatherResponse = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto&hourly=temperature_2m,weather_code&forecast_hours=24`,
       );
 
       if (!weatherResponse.ok) {
@@ -173,6 +182,11 @@ export default function Home() {
           high: weatherData.daily.temperature_2m_max[index],
           low: weatherData.daily.temperature_2m_min[index],
           weatherCode: weatherData.daily.weather_code[index],
+        })),
+        hourly: weatherData.hourly.time.map((time: string, index: number) => ({
+          time,
+          temperature: weatherData.hourly.temperature_2m[index],
+          weatherCode: weatherData.hourly.weather_code[index],
         })),
       });
     } catch (error) {
@@ -323,6 +337,32 @@ export default function Home() {
                 {weather.windSpeed} mph
               </p>
             </div>
+          </div>
+        </article>
+        <article className="mt-6 rounded-3xl bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+          <h2 className="text-lg font-semibold">Next 24 hours</h2>
+
+          <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
+            {weather.hourly.map((hour, index) => {
+              const hourDetails = getWeatherDetails(hour.weatherCode);
+
+              return (
+                <div
+                  className="w-16 shrink-0 rounded-2xl bg-sky-50 p-3 text-center"
+                  key={hour.time}
+                >
+                  <p className="text-xs font-medium text-slate-500">
+                    {index === 0 ? "Now" : formatHour(hour.time)}
+                  </p>
+
+                  <p className="mt-3 text-2xl">{hourDetails.icon}</p>
+
+                  <p className="mt-3 text-sm font-medium">
+                    {Math.round(hour.temperature)}°
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </article>
         <article className="mt-6 rounded-3xl bg-white p-6 shadow-sm">

@@ -74,3 +74,10 @@ export function isSnowy(weatherCode: number) {
 export function isStormy(weatherCode: number) {
   return STORM_CODES.includes(weatherCode);
 }
+export function formatHour(time: string) {
+  const hour = Number(time.slice(11, 13));
+  const displayHour = hour % 12 || 12;
+  const period = hour >= 12 ? "PM" : "AM";
+
+  return `${displayHour} ${period}`;
+}
