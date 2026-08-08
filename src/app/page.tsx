@@ -47,6 +47,24 @@ function formatDay(date: string) {
   });
 }
 
+type ZipCodeResponse = {
+  country: string;
+  places: Array<{
+    "place name": string;
+    state: string;
+    latitude: string;
+    longitude: string;
+  }>;
+};
+
+function parseLocationQuery(searchTerm: string) {
+  const [city, region] = searchTerm.split(",").map((part) => part.trim());
+
+  return {
+    city,
+    region: region || undefined,
+  };
+}
 export default function Home() {
   const [city, setCity] = useState("");
 
@@ -63,6 +81,7 @@ export default function Home() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
+  const [hasSearchedLocations, setHasSearchedLocations] = useState(false);
   const [error, setError] = useState("");
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
   const [isLocationSelected, setIsLocationSelected] = useState(false);
@@ -81,8 +100,41 @@ export default function Home() {
       setError("");
 
       try {
+        if (/^\d{5}$/.test(searchTerm)) {
+          const zipResponse = await fetch(
+            `https://api.zippopotam.us/us/${searchTerm}`,
+            { signal: controller.signal },
+          );
+
+          if (zipResponse.status === 404) {
+            setLocationOptions([]);
+            setHasSearchedLocations(true);
+            return;
+          }
+
+          if (!zipResponse.ok) {
+            throw new Error("Unable to search for that ZIP code.");
+          }
+
+          const zipData: ZipCodeResponse = await zipResponse.json();
+
+          setLocationOptions(
+            zipData.places.map((place) => ({
+              name: place["place name"],
+              admin1: place.state,
+              country: zipData.country,
+              latitude: Number(place.latitude),
+              longitude: Number(place.longitude),
+            })),
+          );
+          setHasSearchedLocations(true);
+          return;
+        }
+
+        const { city: cityName, region } = parseLocationQuery(searchTerm);
+
         const locationResponse = await fetch(
-          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchTerm)}&count=5&language=en&format=json`,
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=10&language=en&format=json`,
           { signal: controller.signal },
         );
 
@@ -93,7 +145,15 @@ export default function Home() {
         const locationData = await locationResponse.json();
         const locations: LocationOption[] = locationData.results ?? [];
 
-        setLocationOptions(locations);
+        const filteredLocations = region
+          ? locations.filter(
+              (location) =>
+                location.admin1?.toLowerCase() === region.toLowerCase(),
+            )
+          : locations;
+
+        setLocationOptions(filteredLocations);
+        setHasSearchedLocations(true);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
@@ -128,6 +188,7 @@ export default function Home() {
     setIsLoading(true);
     setError("");
     setLocationOptions([]);
+    setHasSearchedLocations(false);
 
     try {
       const weatherResponse = await fetch(
@@ -237,13 +298,14 @@ export default function Home() {
             autoComplete="off"
             className="w-full rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm outline-none md:bg-white/85 md:backdrop-blur-sm"
             id="city-search"
-            placeholder="Search for a city..."
+            placeholder="Search city, state, or ZIP code..."
             type="search"
             value={city}
             onChange={(event) => {
               setCity(event.target.value);
               setIsLocationSelected(false);
               setLocationOptions([]);
+              setHasSearchedLocations(false);
             }}
           />
         </div>
@@ -253,12 +315,25 @@ export default function Home() {
         {isSearchingLocations && (
           <p className="mt-3 text-sm text-slate-600">Searching locations...</p>
         )}
+        {hasSearchedLocations &&
+          !isSearchingLocations &&
+          locationOptions.length === 0 &&
+          !error && (
+            <p className="mt-3 text-sm text-slate-600">
+              No locations found. Try a city and state, or a ZIP code.
+            </p>
+          )}
         {locationOptions.length > 0 && (
           <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-sm md:bg-white/90 md:backdrop-blur-sm">
             <p className="px-4 py-3 text-sm font-medium text-slate-600">
               Choose a location
             </p>
-
+            {locationOptions.length === 10 && (
+              <p className="px-4 pb-3 text-sm text-slate-500">
+                Showing the top 10 matches. Add a state or country to refine
+                your search.
+              </p>
+            )}
             {locationOptions.map((location) => (
               <button
                 className="flex w-full flex-col border-t border-slate-100 px-4 py-3 text-left hover:bg-sky-50"
