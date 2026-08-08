@@ -64,11 +64,12 @@ export default function Home() {
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
   const [error, setError] = useState("");
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
+  const [isLocationSelected, setIsLocationSelected] = useState(false);
 
   useEffect(() => {
     const searchTerm = city.trim();
 
-    if (searchTerm.length < 2) {
+    if (isLocationSelected || searchTerm.length < 2) {
       return;
     }
 
@@ -109,45 +110,7 @@ export default function Home() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [city]);
-
-  async function handleSearch(event: React.SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    const searchTerm = city.trim();
-
-    if (!searchTerm) {
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const locationResponse = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchTerm)}&count=5&language=en&format=json`,
-      );
-
-      if (!locationResponse.ok) {
-        throw new Error("Unable to search for that city.");
-      }
-
-      const locationData = await locationResponse.json();
-      const locations: LocationOption[] = locationData.results ?? [];
-
-      if (locations.length === 0) {
-        throw new Error("City not found. Try another search.");
-      }
-
-      setLocationOptions(locations);
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Something went wrong.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  }, [city, isLocationSelected]);
 
   async function handleLocationSelect(location: LocationOption) {
     setIsLoading(true);
@@ -170,7 +133,8 @@ export default function Home() {
         : location.name;
 
       setSearchedCity(locationLabel);
-
+      setCity(locationLabel);
+      setIsLocationSelected(true);
       setWeather({
         temperature: weatherData.current.temperature_2m,
         feelsLike: weatherData.current.apparent_temperature,
@@ -258,26 +222,27 @@ export default function Home() {
       )}
       <section className="relative mx-auto max-w-xl">
         <h1 className="text-2xl font-semibold">Weatherly</h1>
-        <form className="mt-8 flex gap-3" onSubmit={handleSearch}>
+        <div className="mt-8">
+          <label className="sr-only" htmlFor="city-search">
+            Search for a city
+          </label>
+
           <input
-            className="w-full rounded-xl border border-slate-200 bg-white/85 backdrop-blur-sm px-4 py-3 shadow-sm outline-none"
+            className="w-full rounded-xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm outline-none backdrop-blur-sm"
+            id="city-search"
             placeholder="Search for a city..."
             type="search"
             value={city}
             onChange={(event) => {
               setCity(event.target.value);
+              setIsLocationSelected(false);
               setLocationOptions([]);
             }}
           />
-
-          <button
-            className="rounded-xl bg-slate-800 px-5 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={isLoading}
-            type="submit"
-          >
-            {isLoading ? "Loading..." : "Search"}
-          </button>
-        </form>
+        </div>
+        {isLoading && (
+          <p className="mt-3 text-sm text-slate-600">Loading weather...</p>
+        )}
         {isSearchingLocations && (
           <p className="mt-3 text-sm text-slate-600">Searching locations...</p>
         )}
