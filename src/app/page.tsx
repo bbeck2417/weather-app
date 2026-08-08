@@ -235,7 +235,7 @@ export default function Home() {
 
           <input
             autoComplete="off"
-            className="w-full rounded-xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm outline-none backdrop-blur-sm"
+            className="w-full rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm outline-none md:bg-white/85 md:backdrop-blur-sm"
             id="city-search"
             placeholder="Search for a city..."
             type="search"
@@ -254,7 +254,7 @@ export default function Home() {
           <p className="mt-3 text-sm text-slate-600">Searching locations...</p>
         )}
         {locationOptions.length > 0 && (
-          <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm">
+          <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-sm md:bg-white/90 md:backdrop-blur-sm">
             <p className="px-4 py-3 text-sm font-medium text-slate-600">
               Choose a location
             </p>
@@ -283,7 +283,7 @@ export default function Home() {
             {error}
           </p>
         )}
-        <article className="mt-6 rounded-3xl bg-white/80 backdrop-blur-sm p-8 shadow-sm">
+        <article className="mt-6 rounded-3xl bg-white/90 p-8 shadow-sm md:bg-white/80 md:backdrop-blur-sm">
           <p className="text-lg text-slate-500">{weather.locationName}</p>
 
           <div className="mt-6 flex items-center gap-5">
@@ -311,7 +311,7 @@ export default function Home() {
             </div>
           </div>
         </article>
-        <article className="mt-6 rounded-3xl bg-white/80 p-6 shadow-sm backdrop-blur-sm">
+        <article className="mt-6 rounded-3xl bg-white/90 p-6 shadow-sm md:bg-white/80 md:backdrop-blur-sm">
           <h2 className="text-lg font-semibold">Next 24 hours</h2>
 
           <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
