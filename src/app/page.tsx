@@ -1,6 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import {
+  getBackgroundClass,
+  getWeatherDetails,
+  isSnowy,
+  isStormy,
+} from "@/lib/weather";
+
+type LocationOption = {
+  name: string;
+  admin1?: string;
+  country?: string;
+  latitude: number;
+  longitude: number;
+};
 
 type WeatherData = {
   temperature: number;
@@ -17,72 +31,6 @@ type ForecastDay = {
   low: number;
   weatherCode: number;
 };
-
-function getWeatherDetails(weatherCode: number) {
-  if (weatherCode === 0) {
-    return { icon: "☀️", label: "Clear" };
-  }
-
-  if ([1, 2].includes(weatherCode)) {
-    return { icon: "🌤️", label: "Partly cloudy" };
-  }
-
-  if (weatherCode === 3) {
-    return { icon: "☁️", label: "Overcast" };
-  }
-
-  if ([45, 48].includes(weatherCode)) {
-    return { icon: "🌫️", label: "Foggy" };
-  }
-
-  if ([51, 53, 55, 56, 57].includes(weatherCode)) {
-    return { icon: "🌦️", label: "Drizzle" };
-  }
-
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) {
-    return { icon: "🌧️", label: "Rain" };
-  }
-
-  if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) {
-    return { icon: "❄️", label: "Snow" };
-  }
-
-  if ([95, 96, 99].includes(weatherCode)) {
-    return { icon: "⛈️", label: "Thunderstorm" };
-  }
-
-  return { icon: "🌡️", label: "Unknown" };
-}
-
-function getBackgroundClass(weatherCode: number) {
-  if (weatherCode === 0) {
-    return "bg-gradient-to-b from-sky-300 via-slate-100 to-white";
-  }
-
-  if ([1, 2].includes(weatherCode)) {
-    return "bg-gradient-to-b from-sky-200 via-slate-100 to-white";
-  }
-
-  if ([3, 45, 48].includes(weatherCode)) {
-    return "bg-gradient-to-b from-slate-300 via-slate-100 to-white";
-  }
-
-  if (
-    [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)
-  ) {
-    return "bg-gradient-to-b from-slate-400 via-sky-200 to-slate-50";
-  }
-
-  if ([71, 73, 75, 77, 85, 86].includes(weatherCode)) {
-    return "bg-gradient-to-b from-sky-100 via-white to-blue-50";
-  }
-
-  if ([95, 96, 99].includes(weatherCode)) {
-    return "bg-gradient-to-b from-slate-600 via-indigo-300 to-slate-100";
-  }
-
-  return "bg-sky-50";
-}
 
 function formatDay(date: string) {
   return new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
@@ -105,6 +53,7 @@ export default function Home() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
 
   async function handleSearch(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -120,7 +69,7 @@ export default function Home() {
 
     try {
       const locationResponse = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchTerm)}&count=1&language=en&format=json`,
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchTerm)}&count=5&language=en&format=json`,
       );
 
       if (!locationResponse.ok) {
@@ -128,14 +77,30 @@ export default function Home() {
       }
 
       const locationData = await locationResponse.json();
-      const location = locationData.results?.[0];
+      const locations: LocationOption[] = locationData.results ?? [];
 
-      if (!location) {
+      if (locations.length === 0) {
         throw new Error("City not found. Try another search.");
       }
 
+      setLocationOptions(locations);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Something went wrong.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleLocationSelect(location: LocationOption) {
+    setIsLoading(true);
+    setError("");
+    setLocationOptions([]);
+
+    try {
       const weatherResponse = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`,
       );
 
       if (!weatherResponse.ok) {
@@ -144,11 +109,12 @@ export default function Home() {
 
       const weatherData = await weatherResponse.json();
 
-      setSearchedCity(
-        location.admin1
-          ? `${location.name}, ${location.admin1}`
-          : location.name,
-      );
+      const locationLabel = location.admin1
+        ? `${location.name}, ${location.admin1}`
+        : location.name;
+
+      setSearchedCity(locationLabel);
+      setCity(locationLabel);
 
       setWeather({
         temperature: weatherData.current.temperature_2m,
@@ -179,6 +145,8 @@ export default function Home() {
   const isRainy = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(
     weather.weatherCode,
   );
+  const shouldShowSnow = isSnowy(weather.weatherCode);
+  const shouldShowStorm = isStormy(weather.weatherCode);
   return (
     <main
       className={`relative min-h-screen overflow-hidden ${backgroundClass} px-6 py-12 text-slate-600`}
@@ -208,6 +176,26 @@ export default function Home() {
           className="rain-overlay pointer-events-none absolute inset-0 opacity-25"
         />
       )}
+      {shouldShowSnow && (
+        <div
+          aria-hidden="true"
+          className="snow-overlay pointer-events-none absolute inset-0 opacity-70"
+        />
+      )}
+
+      {shouldShowStorm && (
+        <>
+          <div
+            aria-hidden="true"
+            className="storm-glow pointer-events-none absolute inset-0"
+          />
+
+          <div
+            aria-hidden="true"
+            className="storm-bolt pointer-events-none absolute right-20 top-16 h-32 w-16"
+          />
+        </>
+      )}
       <section className="relative mx-auto max-w-xl">
         <h1 className="text-2xl font-semibold">Weatherly</h1>
         <form className="mt-8 flex gap-3" onSubmit={handleSearch}>
@@ -227,6 +215,31 @@ export default function Home() {
             {isLoading ? "Loading..." : "Search"}
           </button>
         </form>
+        {locationOptions.length > 0 && (
+          <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur-sm">
+            <p className="px-4 py-3 text-sm font-medium text-slate-600">
+              Choose a location
+            </p>
+
+            {locationOptions.map((location) => (
+              <button
+                className="flex w-full flex-col border-t border-slate-100 px-4 py-3 text-left hover:bg-sky-50"
+                key={`${location.latitude}-${location.longitude}`}
+                onClick={() => handleLocationSelect(location)}
+                type="button"
+              >
+                <span className="font-medium text-slate-800">
+                  {location.name}
+                </span>
+                <span className="text-sm text-slate-500">
+                  {[location.admin1, location.country]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
         {error && (
           <p className="mt-3 text-sm text-red-600" role="alert">
             {error}
@@ -237,7 +250,9 @@ export default function Home() {
 
           <div className="mt-6 flex items-center gap-5">
             <span className="text-6xl">{weatherDetails.icon}</span>
-            <p className="text-6xl font-light">{Math.round(weather.temperature)}°</p>
+            <p className="text-6xl font-light">
+              {Math.round(weather.temperature)}°
+            </p>
           </div>
 
           <p className="mt-4 text-slate-600">
