@@ -228,6 +228,7 @@ export default function Home() {
           </label>
 
           <input
+            autoComplete="off"
             className="w-full rounded-xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm outline-none backdrop-blur-sm"
             id="city-search"
             placeholder="Search for a city..."
