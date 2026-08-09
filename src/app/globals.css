@@ -70,3 +70,21 @@ body {
   clip-path: polygon(55% 0, 100% 0, 62% 42%, 88% 42%, 18% 100%, 38% 55%, 0 55%);
   filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.9));
 }
+.cloud-bank {
+  background-image: url("/weather/cloud-bank.webp");
+  background-position: right top;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 65%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 65%,
+    transparent 100%
+  );
+}

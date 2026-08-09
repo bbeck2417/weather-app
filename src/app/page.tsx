@@ -238,6 +238,7 @@ export default function Home() {
   const isRainy = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(
     weather.weatherCode,
   );
+  const shouldShowCloudBank = isCloudy || isRainy;
   const shouldShowSnow = isSnowy(weather.weatherCode);
   const shouldShowStorm = isStormy(weather.weatherCode);
   return (
@@ -250,19 +251,13 @@ export default function Home() {
           className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/80 blur-3xl"
         />
       )}
-      {isCloudy && (
-        <>
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -left-16 top-24 h-28 w-72 rounded-full bg-white/45 blur-2xl"
-          />
-
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-12 top-56 h-24 w-64 rounded-full bg-white/35 blur-2xl"
-          />
-        </>
+      {shouldShowCloudBank && (
+        <div
+          aria-hidden="true"
+          className="cloud-bank pointer-events-none absolute right-0 top-0 h-[40rem] w-full opacity-100"
+        />
       )}
+
       {isRainy && (
         <div
           aria-hidden="true"
