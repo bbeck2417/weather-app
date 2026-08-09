@@ -285,7 +285,13 @@ export default function Home() {
         </>
       )}
       <section className="relative mx-auto max-w-xl">
-        <h1 className="text-2xl font-semibold">Weatherly</h1>
+        <h1
+          className={`text-2xl font-semibold ${
+            shouldShowStorm ? "text-white drop-shadow-sm" : "text-slate-600"
+          }`}
+        >
+          Weatherly
+        </h1>
         <div className="mt-8">
           <label className="sr-only" htmlFor="city-search">
             Search for a city
@@ -355,7 +361,10 @@ export default function Home() {
             {error}
           </p>
         )}
-        <article className="mt-6 rounded-3xl bg-white/90 p-8 shadow-sm md:bg-white/80 md:backdrop-blur-sm">
+        <article
+          key={`${weather.locationName}-${weather.temperature}`}
+          className="mt-6 rounded-3xl bg-white/90 p-8 shadow-sm md:bg-white/80 md:backdrop-blur-sm"
+        >
           <p className="text-lg text-slate-500">{weather.locationName}</p>
 
           <div className="mt-6 flex items-center gap-5">
