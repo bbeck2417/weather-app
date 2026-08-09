@@ -275,7 +275,7 @@ export default function Home() {
         <>
           <div
             aria-hidden="true"
-            className="storm-glow pointer-events-none absolute inset-0"
+            className="storm-cloud pointer-events-none absolute right-0 top-0 h-[40rem] w-full"
           />
 
           <div

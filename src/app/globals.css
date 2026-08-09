@@ -81,10 +81,18 @@ body {
     #000 65%,
     transparent 100%
   );
-  mask-image: linear-gradient(
+  mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+}
+.storm-cloud {
+  background-image: url("/weather/storm-cloud.webp");
+  background-position: right top;
+  background-repeat: no-repeat;
+  background-size: auto 100%;
+  -webkit-mask-image: linear-gradient(
     to bottom,
     #000 0%,
     #000 65%,
     transparent 100%
   );
+  mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
 }
