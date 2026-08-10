@@ -78,14 +78,17 @@ body {
 }
 .storm-cloud {
   background-image: url("/weather/storm-cloud.webp");
-  background-position: right top;
+  background-position: center top;
+  background-size: auto 150%;
   background-repeat: no-repeat;
-  background-size: auto 100%;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    #000 0%,
-    #000 65%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%);
+
+  -webkit-mask-image:
+    linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%),
+    linear-gradient(to right, transparent 0%, #000 22%, #000 100%);
+  -webkit-mask-composite: source-in;
+
+  mask-image:
+    linear-gradient(to bottom, #000 0%, #000 65%, transparent 100%),
+    linear-gradient(to right, transparent 0%, #000 22%, #000 100%);
+  mask-composite: intersect;
 }
