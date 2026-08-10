@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+
 import {
   formatHour,
   getBackgroundClass,
@@ -22,6 +23,7 @@ type HourlyForecast = {
   time: string;
   temperature: number;
   weatherCode: number;
+  precipitationChance: number;
 };
 
 type WeatherData = {
@@ -33,6 +35,7 @@ type WeatherData = {
   forecast: ForecastDay[];
   hourly: HourlyForecast[];
   locationName: string;
+  precipitationChance: number;
 };
 
 type ForecastDay = {
@@ -40,6 +43,7 @@ type ForecastDay = {
   high: number;
   low: number;
   weatherCode: number;
+  precipitationChance: number;
 };
 
 function formatDay(date: string) {
@@ -78,6 +82,7 @@ export default function Home() {
     forecast: [],
     hourly: [],
     locationName: "Indianapolis",
+    precipitationChance: 20,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -195,7 +200,7 @@ export default function Home() {
 
     try {
       const weatherResponse = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto&hourly=temperature_2m,weather_code&forecast_hours=24`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5&timezone=auto&hourly=temperature_2m,weather_code,precipitation_probability&forecast_hours=24`,
       );
 
       if (!weatherResponse.ok) {
@@ -203,6 +208,9 @@ export default function Home() {
       }
 
       const weatherData = await weatherResponse.json();
+      const currentHourIndex = weatherData.hourly.time.findIndex(
+        (time: string) => time === weatherData.current.time,
+      );
 
       setWeather({
         locationName: locationLabel,
@@ -211,16 +219,24 @@ export default function Home() {
         humidity: weatherData.current.relative_humidity_2m,
         windSpeed: weatherData.current.wind_speed_10m,
         weatherCode: weatherData.current.weather_code,
+        precipitationChance:
+          weatherData.hourly.precipitation_probability[
+            currentHourIndex >= 0 ? currentHourIndex : 0
+          ] ?? 0,
         forecast: weatherData.daily.time.map((date: string, index: number) => ({
           date,
           high: weatherData.daily.temperature_2m_max[index],
           low: weatherData.daily.temperature_2m_min[index],
           weatherCode: weatherData.daily.weather_code[index],
+          precipitationChance:
+            weatherData.daily.precipitation_probability_max[index] ?? 0,
         })),
         hourly: weatherData.hourly.time.map((time: string, index: number) => ({
           time,
           temperature: weatherData.hourly.temperature_2m[index],
           weatherCode: weatherData.hourly.weather_code[index],
+          precipitationChance:
+            weatherData.hourly.precipitation_probability[index] ?? 0,
         })),
       });
     } catch (error) {
@@ -231,7 +247,6 @@ export default function Home() {
       setIsLoading(false);
     }
   }, []);
-
   const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Your browser does not support location detection.");
@@ -456,6 +471,7 @@ export default function Home() {
 
           <div className="mt-6 flex items-center gap-5">
             <span className="text-6xl">{weatherDetails.icon}</span>
+
             <p className="text-6xl font-light">
               {Math.round(weather.temperature)}°
             </p>
@@ -463,8 +479,10 @@ export default function Home() {
 
           <p className="mt-4 text-slate-600">
             {weatherDetails.label} · Feels like {Math.round(weather.feelsLike)}°
+            💧 {weather.precipitationChance}%
           </p>
 
+          <p className="text-xs text-slate-500"></p>
           <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
             <div className="rounded-2xl bg-sky-50 p-4">
               <p className="text-slate-500">Humidity</p>
@@ -496,7 +514,9 @@ export default function Home() {
                   </p>
 
                   <p className="mt-3 text-2xl">{hourDetails.icon}</p>
-
+                  <p className="text-xs text-slate-500">
+                    💧 {hour.precipitationChance}%
+                  </p>
                   <p className="mt-3 text-sm font-medium">
                     {Math.round(hour.temperature)}°
                   </p>
@@ -522,6 +542,9 @@ export default function Home() {
                   </p>
 
                   <p className="mt-2 text-2xl">{dayDetails.icon}</p>
+                  <p className="text-xs text-slate-500">
+                    💧 {day.precipitationChance}%
+                  </p>
 
                   <p className="mt-2 text-sm font-medium">
                     {Math.round(day.high)}°
