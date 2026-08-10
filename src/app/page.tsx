@@ -231,6 +231,45 @@ export default function Home() {
     }
   }
 
+  function handleUseMyLocation() {
+    if (!navigator.geolocation) {
+      setError("Your browser does not support location detection.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        void handleLocationSelect({
+          name: "Your location",
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (locationError) => {
+        setIsLoading(false);
+
+        if (locationError.code === 1) {
+          setError(
+            "Location access was not allowed. Search for a city instead.",
+          );
+          return;
+        }
+
+        setError(
+          "Unable to determine your location. Search for a city instead.",
+        );
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10_000,
+        maximumAge: 300_000,
+      },
+    );
+  }
+
   const weatherDetails = getWeatherDetails(weather.weatherCode);
   const backgroundClass = getBackgroundClass(weather.weatherCode);
   const isClear = weather.weatherCode === 0;
@@ -312,6 +351,15 @@ export default function Home() {
             }}
           />
         </div>
+
+        <button
+          className="mt-3 text-sm font-medium text-slate-600 underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={isLoading}
+          onClick={handleUseMyLocation}
+          type="button"
+        >
+          Use my location
+        </button>
         {isLoading && (
           <p className="mt-3 text-sm text-slate-600">Loading weather...</p>
         )}
