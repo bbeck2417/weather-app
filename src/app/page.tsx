@@ -332,20 +332,20 @@ export default function Home() {
       {shouldShowCloudBank && (
         <div
           aria-hidden="true"
-          className="cloud-bank pointer-events-none absolute right-0 top-0 h-[40rem] w-full opacity-100"
+          className="cloud-bank pointer-events-none fixed right-0 top-0 h-[40rem] w-full opacity-100"
         />
       )}
 
       {isRainy && (
         <div
           aria-hidden="true"
-          className="rain-overlay pointer-events-none absolute inset-0 opacity-25"
+          className="rain-overlay pointer-events-none fixed inset-0 opacity-25"
         />
       )}
       {shouldShowSnow && (
         <div
           aria-hidden="true"
-          className="snow-flurries pointer-events-none absolute inset-0 opacity-75"
+          className="snow-flurries pointer-events-none fixed inset-0 opacity-75"
         />
       )}
 
@@ -353,16 +353,16 @@ export default function Home() {
         <>
           <div
             aria-hidden="true"
-            className="storm-cloud pointer-events-none absolute right-0 top-0 h-[40rem] w-full"
+            className="storm-cloud pointer-events-none fixed right-0 top-0 h-[40rem] w-full"
           />
 
           <div
             aria-hidden="true"
-            className="storm-bolt pointer-events-none absolute right-20 top-16 h-32 w-16"
+            className="storm-bolt pointer-events-none fixed right-20 top-16 h-32 w-16"
           />
         </>
       )}
-      <section className="relative mx-auto max-w-xl">
+      <section className="relative z-10 mx-auto max-w-xl">
         <h1
           className={`text-2xl font-semibold ${
             shouldShowStorm ? "text-white drop-shadow-sm" : "text-slate-600"
