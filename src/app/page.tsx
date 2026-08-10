@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   formatHour,
   getBackgroundClass,
@@ -86,6 +86,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
   const [isLocationSelected, setIsLocationSelected] = useState(false);
+  const hasCheckedLocationPermission = useRef(false);
 
   useEffect(() => {
     const searchTerm = city.trim();
@@ -175,7 +176,7 @@ export default function Home() {
     };
   }, [city, isLocationSelected]);
 
-  async function handleLocationSelect(location: LocationOption) {
+  const handleLocationSelect = useCallback(async (location: LocationOption) => {
     const locationLabel = location.admin1
       ? `${location.name}, ${location.admin1}`
       : location.name;
@@ -229,9 +230,9 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
 
-  function handleUseMyLocation() {
+  const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Your browser does not support location detection.");
       return;
@@ -241,11 +242,30 @@ export default function Home() {
     setError("");
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        let locationName = "Current location";
+
+        try {
+          const response = await fetch(
+            `/api/reverse-geocode?latitude=${latitude}&longitude=${longitude}`,
+          );
+
+          if (response.ok) {
+            const data: { locationName?: string } = await response.json();
+
+            if (data.locationName) {
+              locationName = data.locationName;
+            }
+          }
+        } catch {
+          // Weather will still load with the fallback label.
+        }
+
         void handleLocationSelect({
-          name: "Your location",
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          name: locationName,
+          latitude,
+          longitude,
         });
       },
       (locationError) => {
@@ -268,7 +288,26 @@ export default function Home() {
         maximumAge: 300_000,
       },
     );
-  }
+  }, [handleLocationSelect]);
+
+  useEffect(() => {
+    if (hasCheckedLocationPermission.current || !navigator.permissions) {
+      return;
+    }
+
+    hasCheckedLocationPermission.current = true;
+
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((permissionStatus) => {
+        if (permissionStatus.state === "granted") {
+          handleUseMyLocation();
+        }
+      })
+      .catch(() => {
+        // The button remains available for browsers without Permissions API support.
+      });
+  }, [handleUseMyLocation]);
 
   const weatherDetails = getWeatherDetails(weather.weatherCode);
   const backgroundClass = getBackgroundClass(weather.weatherCode);
