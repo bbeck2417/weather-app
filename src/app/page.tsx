@@ -19,6 +19,13 @@ type LocationOption = {
   longitude: number;
 };
 
+type SavedLocation = {
+  name: string;
+  admin1?: string;
+  latitude: number;
+  longitude: number;
+};
+
 type HourlyForecast = {
   time: string;
   temperature: number;
@@ -36,6 +43,8 @@ type WeatherData = {
   hourly: HourlyForecast[];
   locationName: string;
   precipitationChance: number;
+  latitude: number;
+  longitude: number;
 };
 
 type ForecastDay = {
@@ -70,6 +79,8 @@ function parseLocationQuery(searchTerm: string) {
     region: region || undefined,
   };
 }
+const SAVED_LOCATIONS_STORAGE_KEY = "weatherly-saved-locations";
+
 export default function Home() {
   const [city, setCity] = useState("");
 
@@ -83,6 +94,8 @@ export default function Home() {
     hourly: [],
     locationName: "Indianapolis",
     precipitationChance: 20,
+    latitude: 39.7684,
+    longitude: -86.1581,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -92,7 +105,49 @@ export default function Home() {
   const [locationOptions, setLocationOptions] = useState<LocationOption[]>([]);
   const [isLocationSelected, setIsLocationSelected] = useState(false);
   const hasCheckedLocationPermission = useRef(false);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [isManagingSavedLocations, setIsManagingSavedLocations] =
+    useState(false);
 
+  const hasLoadedSavedLocations = useRef(false);
+
+  useEffect(() => {
+    const storedLocations = window.localStorage.getItem(
+      SAVED_LOCATIONS_STORAGE_KEY,
+    );
+
+    let locations: SavedLocation[] = [];
+
+    if (storedLocations) {
+      try {
+        const parsedLocations: unknown = JSON.parse(storedLocations);
+
+        if (Array.isArray(parsedLocations)) {
+          locations = parsedLocations as SavedLocation[];
+        }
+      } catch {
+        // Ignore unreadable saved data and begin with an empty list.
+      }
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      hasLoadedSavedLocations.current = true;
+      setSavedLocations(locations);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedSavedLocations.current) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      SAVED_LOCATIONS_STORAGE_KEY,
+      JSON.stringify(savedLocations),
+    );
+  }, [savedLocations]);
   useEffect(() => {
     const searchTerm = city.trim();
 
@@ -191,6 +246,8 @@ export default function Home() {
     setWeather((currentWeather) => ({
       ...currentWeather,
       locationName: locationLabel,
+      latitude: location.latitude,
+      longitude: location.longitude,
     }));
 
     setIsLoading(true);
@@ -238,6 +295,8 @@ export default function Home() {
           precipitationChance:
             weatherData.hourly.precipitation_probability[index] ?? 0,
         })),
+        latitude: location.latitude,
+        longitude: location.longitude,
       });
     } catch (error) {
       setError(
@@ -247,6 +306,53 @@ export default function Home() {
       setIsLoading(false);
     }
   }, []);
+  const isCurrentLocationSaved = savedLocations.some(
+    (savedLocation) =>
+      savedLocation.latitude === weather.latitude &&
+      savedLocation.longitude === weather.longitude,
+  );
+
+  function handleToggleSavedLocation() {
+    if (isCurrentLocationSaved) {
+      setSavedLocations((currentLocations) =>
+        currentLocations.filter(
+          (savedLocation) =>
+            savedLocation.latitude !== weather.latitude ||
+            savedLocation.longitude !== weather.longitude,
+        ),
+      );
+      return;
+    }
+
+    if (savedLocations.length >= 5) {
+      setError(
+        "You can save up to five locations. Remove one before adding another.",
+      );
+      return;
+    }
+
+    setSavedLocations((currentLocations) => [
+      ...currentLocations,
+      {
+        name: weather.locationName,
+        latitude: weather.latitude,
+        longitude: weather.longitude,
+      },
+    ]);
+  }
+  function handleRemoveSavedLocation(locationToRemove: SavedLocation) {
+    const remainingLocations = savedLocations.filter(
+      (savedLocation) =>
+        savedLocation.latitude !== locationToRemove.latitude ||
+        savedLocation.longitude !== locationToRemove.longitude,
+    );
+
+    setSavedLocations(remainingLocations);
+
+    if (remainingLocations.length === 0) {
+      setIsManagingSavedLocations(false);
+    }
+  }
   const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Your browser does not support location detection.");
@@ -414,6 +520,53 @@ export default function Home() {
         >
           Use my location
         </button>
+        {savedLocations.length > 0 && (
+          <section className="mt-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-600">
+                Saved locations
+              </h2>
+
+              <button
+                className="text-sm font-medium text-slate-600 underline-offset-4 hover:underline"
+                onClick={() =>
+                  setIsManagingSavedLocations((current) => !current)
+                }
+                type="button"
+              >
+                {isManagingSavedLocations ? "Done" : "Manage"}
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {savedLocations.map((savedLocation) => (
+                <div
+                  className="relative"
+                  key={`${savedLocation.latitude}-${savedLocation.longitude}`}
+                >
+                  <button
+                    className="rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-sky-50"
+                    onClick={() => handleLocationSelect(savedLocation)}
+                    type="button"
+                  >
+                    {savedLocation.name}
+                  </button>
+
+                  {isManagingSavedLocations && (
+                    <button
+                      aria-label={`Remove ${savedLocation.name}`}
+                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-600 text-sm text-white shadow-sm hover:bg-slate-700"
+                      onClick={() => handleRemoveSavedLocation(savedLocation)}
+                      type="button"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
         {isLoading && (
           <p className="mt-3 text-sm text-slate-600">Loading weather...</p>
         )}
@@ -467,7 +620,27 @@ export default function Home() {
           key={`${weather.locationName}-${weather.temperature}`}
           className="mt-6 rounded-3xl bg-white/90 p-8 shadow-sm md:bg-white/80 md:backdrop-blur-sm"
         >
-          <p className="text-lg text-slate-500">{weather.locationName}</p>
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-lg text-slate-500">{weather.locationName}</p>
+
+            <button
+              aria-label={
+                isCurrentLocationSaved
+                  ? `Remove ${weather.locationName} from saved locations`
+                  : `Save ${weather.locationName}`
+              }
+              className="rounded-full px-2 py-1 text-2xl text-amber-500 transition hover:bg-amber-50"
+              onClick={handleToggleSavedLocation}
+              title={
+                isCurrentLocationSaved
+                  ? "Remove from saved locations"
+                  : "Save location"
+              }
+              type="button"
+            >
+              {isCurrentLocationSaved ? "★" : "☆"}
+            </button>
+          </div>
 
           <div className="mt-6 flex items-center gap-5">
             <span className="text-6xl">{weatherDetails.icon}</span>
