@@ -99,6 +99,8 @@ export default function Home() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingInitialLocation, setIsCheckingInitialLocation] =
+    useState(true);
   const [isSearchingLocations, setIsSearchingLocations] = useState(false);
   const [hasSearchedLocations, setHasSearchedLocations] = useState(false);
   const [error, setError] = useState("");
@@ -304,6 +306,7 @@ export default function Home() {
       );
     } finally {
       setIsLoading(false);
+      setIsCheckingInitialLocation(false);
     }
   }, []);
   const isCurrentLocationSaved = savedLocations.some(
@@ -355,6 +358,7 @@ export default function Home() {
   }
   const handleUseMyLocation = useCallback(() => {
     if (!navigator.geolocation) {
+      setIsCheckingInitialLocation(false);
       setError("Your browser does not support location detection.");
       return;
     }
@@ -390,6 +394,7 @@ export default function Home() {
         });
       },
       (locationError) => {
+        setIsCheckingInitialLocation(false);
         setIsLoading(false);
 
         if (locationError.code === 1) {
@@ -412,22 +417,18 @@ export default function Home() {
   }, [handleLocationSelect]);
 
   useEffect(() => {
-    if (hasCheckedLocationPermission.current || !navigator.permissions) {
+    if (hasCheckedLocationPermission.current) {
       return;
     }
 
-    hasCheckedLocationPermission.current = true;
+    const frameId = window.requestAnimationFrame(() => {
+      hasCheckedLocationPermission.current = true;
+      handleUseMyLocation();
+    });
 
-    navigator.permissions
-      .query({ name: "geolocation" })
-      .then((permissionStatus) => {
-        if (permissionStatus.state === "granted") {
-          handleUseMyLocation();
-        }
-      })
-      .catch(() => {
-        // The button remains available for browsers without Permissions API support.
-      });
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
   }, [handleUseMyLocation]);
 
   const weatherDetails = getWeatherDetails(weather.weatherCode);
@@ -616,121 +617,132 @@ export default function Home() {
             {error}
           </p>
         )}
-        <article
-          key={`${weather.locationName}-${weather.temperature}`}
-          className="mt-6 rounded-3xl bg-white/90 p-8 shadow-sm md:bg-white/80 md:backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-lg text-slate-500">{weather.locationName}</p>
-
-            <button
-              aria-label={
-                isCurrentLocationSaved
-                  ? `Remove ${weather.locationName} from saved locations`
-                  : `Save ${weather.locationName}`
-              }
-              className="rounded-full px-2 py-1 text-2xl text-amber-500 transition hover:bg-amber-50"
-              onClick={handleToggleSavedLocation}
-              title={
-                isCurrentLocationSaved
-                  ? "Remove from saved locations"
-                  : "Save location"
-              }
-              type="button"
+        {isCheckingInitialLocation ? (
+          <div className="mt-6 rounded-3xl bg-white/80 p-8 shadow-sm">
+            <p className="text-sm text-slate-500">Detecting your location...</p>
+          </div>
+        ) : (
+          <>
+            <article
+              key={`${weather.locationName}-${weather.temperature}`}
+              className="mt-6 rounded-3xl bg-white/90 p-8 shadow-sm md:bg-white/80 md:backdrop-blur-sm"
             >
-              {isCurrentLocationSaved ? "★" : "☆"}
-            </button>
-          </div>
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-lg text-slate-500">{weather.locationName}</p>
 
-          <div className="mt-6 flex items-center gap-5">
-            <span className="text-6xl">{weatherDetails.icon}</span>
+                <button
+                  aria-label={
+                    isCurrentLocationSaved
+                      ? `Remove ${weather.locationName} from saved locations`
+                      : `Save ${weather.locationName}`
+                  }
+                  className="rounded-full px-2 py-1 text-2xl text-amber-500 transition hover:bg-amber-50"
+                  onClick={handleToggleSavedLocation}
+                  title={
+                    isCurrentLocationSaved
+                      ? "Remove from saved locations"
+                      : "Save location"
+                  }
+                  type="button"
+                >
+                  {isCurrentLocationSaved ? "★" : "☆"}
+                </button>
+              </div>
 
-            <p className="text-6xl font-light">
-              {Math.round(weather.temperature)}°
-            </p>
-          </div>
+              <div className="mt-6 flex items-center gap-5">
+                <span className="text-6xl">{weatherDetails.icon}</span>
 
-          <p className="mt-4 text-slate-600">
-            {weatherDetails.label} · Feels like {Math.round(weather.feelsLike)}°
-            💧 {weather.precipitationChance}%
-          </p>
+                <p className="text-6xl font-light">
+                  {Math.round(weather.temperature)}°
+                </p>
+              </div>
 
-          <p className="text-xs text-slate-500"></p>
-          <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
-            <div className="rounded-2xl bg-sky-50 p-4">
-              <p className="text-slate-500">Humidity</p>
-              <p className="mt-1 text-lg font-medium">{weather.humidity}%</p>
-            </div>
-
-            <div className="rounded-2xl bg-sky-50 p-4">
-              <p className="text-slate-500">Wind</p>
-              <p className="mt-1 text-lg font-medium">
-                {weather.windSpeed} mph
+              <p className="mt-4 text-slate-600">
+                {weatherDetails.label} · Feels like{" "}
+                {Math.round(weather.feelsLike)}° 💧{" "}
+                {weather.precipitationChance}%
               </p>
-            </div>
-          </div>
-        </article>
-        <article className="mt-6 rounded-3xl bg-white/90 p-6 shadow-sm md:bg-white/80 md:backdrop-blur-sm">
-          <h2 className="text-lg font-semibold">Next 24 hours</h2>
 
-          <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
-            {weather.hourly.map((hour, index) => {
-              const hourDetails = getWeatherDetails(hour.weatherCode);
-
-              return (
-                <div
-                  className="w-16 shrink-0 rounded-2xl bg-sky-50 p-3 text-center"
-                  key={hour.time}
-                >
-                  <p className="text-xs font-medium text-slate-500">
-                    {index === 0 ? "Now" : formatHour(hour.time)}
-                  </p>
-
-                  <p className="mt-3 text-2xl">{hourDetails.icon}</p>
-                  <p className="text-xs text-slate-500">
-                    💧 {hour.precipitationChance}%
-                  </p>
-                  <p className="mt-3 text-sm font-medium">
-                    {Math.round(hour.temperature)}°
+              <p className="text-xs text-slate-500"></p>
+              <div className="mt-8 grid grid-cols-2 gap-4 text-sm">
+                <div className="rounded-2xl bg-sky-50 p-4">
+                  <p className="text-slate-500">Humidity</p>
+                  <p className="mt-1 text-lg font-medium">
+                    {weather.humidity}%
                   </p>
                 </div>
-              );
-            })}
-          </div>
-        </article>
-        <article className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold">5-day forecast</h2>
 
-          <div className="mt-5 grid grid-cols-5 gap-2">
-            {weather.forecast.map((day) => {
-              const dayDetails = getWeatherDetails(day.weatherCode);
-
-              return (
-                <div
-                  className="rounded-2xl bg-sky-50 p-3 text-center"
-                  key={day.date}
-                >
-                  <p className="text-xs font-medium text-slate-500">
-                    {formatDay(day.date)}
-                  </p>
-
-                  <p className="mt-2 text-2xl">{dayDetails.icon}</p>
-                  <p className="text-xs text-slate-500">
-                    💧 {day.precipitationChance}%
-                  </p>
-
-                  <p className="mt-2 text-sm font-medium">
-                    {Math.round(day.high)}°
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    {Math.round(day.low)}°
+                <div className="rounded-2xl bg-sky-50 p-4">
+                  <p className="text-slate-500">Wind</p>
+                  <p className="mt-1 text-lg font-medium">
+                    {weather.windSpeed} mph
                   </p>
                 </div>
-              );
-            })}
-          </div>
-        </article>
+              </div>
+            </article>
+            <article className="mt-6 rounded-3xl bg-white/90 p-6 shadow-sm md:bg-white/80 md:backdrop-blur-sm">
+              <h2 className="text-lg font-semibold">Next 24 hours</h2>
+
+              <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
+                {weather.hourly.map((hour, index) => {
+                  const hourDetails = getWeatherDetails(hour.weatherCode);
+
+                  return (
+                    <div
+                      className="w-16 shrink-0 rounded-2xl bg-sky-50 p-3 text-center"
+                      key={hour.time}
+                    >
+                      <p className="text-xs font-medium text-slate-500">
+                        {index === 0 ? "Now" : formatHour(hour.time)}
+                      </p>
+
+                      <p className="mt-3 text-2xl">{hourDetails.icon}</p>
+                      <p className="text-xs text-slate-500">
+                        💧 {hour.precipitationChance}%
+                      </p>
+                      <p className="mt-3 text-sm font-medium">
+                        {Math.round(hour.temperature)}°
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+            <article className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold">5-day forecast</h2>
+
+              <div className="mt-5 grid grid-cols-5 gap-2">
+                {weather.forecast.map((day) => {
+                  const dayDetails = getWeatherDetails(day.weatherCode);
+
+                  return (
+                    <div
+                      className="rounded-2xl bg-sky-50 p-3 text-center"
+                      key={day.date}
+                    >
+                      <p className="text-xs font-medium text-slate-500">
+                        {formatDay(day.date)}
+                      </p>
+
+                      <p className="mt-2 text-2xl">{dayDetails.icon}</p>
+                      <p className="text-xs text-slate-500">
+                        💧 {day.precipitationChance}%
+                      </p>
+
+                      <p className="mt-2 text-sm font-medium">
+                        {Math.round(day.high)}°
+                      </p>
+
+                      <p className="text-xs text-slate-500">
+                        {Math.round(day.low)}°
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          </>
+        )}
       </section>
     </main>
   );
