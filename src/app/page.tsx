@@ -326,7 +326,7 @@ export default function Home() {
       {isClear && (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/80 blur-3xl"
+          className="pointer-events-none fixed -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/80 blur-3xl"
         />
       )}
       {shouldShowCloudBank && (
