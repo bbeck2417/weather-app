@@ -345,7 +345,7 @@ export default function Home() {
       {shouldShowSnow && (
         <div
           aria-hidden="true"
-          className="snow-overlay pointer-events-none absolute inset-0 opacity-70"
+          className="snow-flurries pointer-events-none absolute inset-0 opacity-75"
         />
       )}
 

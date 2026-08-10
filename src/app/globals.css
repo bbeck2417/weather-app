@@ -26,24 +26,17 @@ body {
 }
 
 .rain-overlay {
-  background-image: repeating-linear-gradient(
-    120deg,
-    transparent 0,
-    transparent 22px,
-    rgba(255, 255, 255, 0.65) 23px,
-    transparent 25px
-  );
+  background-image: url("/weather/rain-texture.webp");
+  background-position: center top;
+  background-repeat: repeat-y;
+  background-size: min(1200px, 150vw) auto;
 }
-.snow-overlay {
-  background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.9) 1.5px, transparent 2px),
-    radial-gradient(circle, rgba(255, 255, 255, 0.65) 1px, transparent 1.5px);
-  background-position:
-    0 0,
-    24px 18px;
-  background-size:
-    44px 44px,
-    68px 68px;
+
+.snow-flurries {
+  background-image: url("/weather/snow-flurries.webp");
+  background-position: center top;
+  background-repeat: repeat-y;
+  background-size: min(1200px, 150vw) auto;
 }
 
 .storm-glow {
