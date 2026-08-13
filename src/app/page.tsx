@@ -31,6 +31,7 @@ type HourlyForecast = {
   temperature: number;
   weatherCode: number;
   precipitationChance: number;
+  isDay: boolean;
 };
 
 type WeatherData = {
@@ -45,6 +46,7 @@ type WeatherData = {
   precipitationChance: number;
   latitude: number;
   longitude: number;
+  isDay: boolean;
 };
 
 type ForecastDay = {
@@ -96,6 +98,7 @@ export default function Home() {
     precipitationChance: 20,
     latitude: 39.7684,
     longitude: -86.1581,
+    isDay: true,
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -259,7 +262,7 @@ export default function Home() {
 
     try {
       const weatherResponse = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5&timezone=auto&hourly=temperature_2m,weather_code,precipitation_probability&forecast_hours=24`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&temperature_unit=fahrenheit&wind_speed_unit=mph&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5&timezone=auto&hourly=temperature_2m,weather_code,precipitation_probability,is_day&forecast_hours=24`,
       );
 
       if (!weatherResponse.ok) {
@@ -278,6 +281,7 @@ export default function Home() {
         humidity: weatherData.current.relative_humidity_2m,
         windSpeed: weatherData.current.wind_speed_10m,
         weatherCode: weatherData.current.weather_code,
+        isDay: weatherData.current.is_day === 1,
         precipitationChance:
           weatherData.hourly.precipitation_probability[
             currentHourIndex >= 0 ? currentHourIndex : 0
@@ -294,6 +298,7 @@ export default function Home() {
           time,
           temperature: weatherData.hourly.temperature_2m[index],
           weatherCode: weatherData.hourly.weather_code[index],
+          isDay: weatherData.hourly.is_day[index] === 1,
           precipitationChance:
             weatherData.hourly.precipitation_probability[index] ?? 0,
         })),
@@ -431,8 +436,9 @@ export default function Home() {
     };
   }, [handleUseMyLocation]);
 
-  const weatherDetails = getWeatherDetails(weather.weatherCode);
-  const backgroundClass = getBackgroundClass(weather.weatherCode);
+  const weatherDetails = getWeatherDetails(weather.weatherCode, weather.isDay);
+  const backgroundClass = getBackgroundClass(weather.weatherCode, weather.isDay);
+  const isNight = !weather.isDay;
   const isClear = weather.weatherCode === 0;
   const isCloudy = [1, 2, 3].includes(weather.weatherCode);
   const isRainy = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(
@@ -445,7 +451,7 @@ export default function Home() {
     <main
       className={`relative min-h-screen overflow-hidden ${backgroundClass} px-6 py-12 text-slate-600`}
     >
-      {isClear && (
+      {isClear && weather.isDay && (
         <div
           aria-hidden="true"
           className="pointer-events-none fixed -right-20 -top-20 h-72 w-72 rounded-full bg-amber-200/80 blur-3xl"
@@ -487,7 +493,7 @@ export default function Home() {
       <section className="relative z-10 mx-auto max-w-xl">
         <h1
           className={`text-2xl font-semibold ${
-            shouldShowStorm ? "text-white drop-shadow-sm" : "text-slate-600"
+            shouldShowStorm || isNight ? "text-white drop-shadow-sm" : "text-slate-600"
           }`}
         >
           Weatherly
@@ -685,7 +691,7 @@ export default function Home() {
 
               <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
                 {weather.hourly.map((hour, index) => {
-                  const hourDetails = getWeatherDetails(hour.weatherCode);
+                  const hourDetails = getWeatherDetails(hour.weatherCode, hour.isDay);
 
                   return (
                     <div

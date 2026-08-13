@@ -43,6 +43,13 @@ describe("getWeatherDetails", () => {
       label: "Unknown",
     });
   });
+
+  it("uses a rain-only icon for nighttime drizzle", () => {
+    expect(getWeatherDetails(51, false)).toEqual({
+      icon: "🌧️",
+      label: "Drizzle",
+    });
+  });
 });
 
 describe("weather background helpers", () => {

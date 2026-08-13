@@ -1,10 +1,16 @@
-export function getWeatherDetails(weatherCode: number) {
+export function getWeatherDetails(weatherCode: number, isDay = true) {
   if (weatherCode === 0) {
-    return { icon: "☀️", label: "Clear" };
+    return {
+      icon: isDay ? "☀️" : "🌙",
+      label: "Clear",
+    };
   }
 
   if ([1, 2].includes(weatherCode)) {
-    return { icon: "🌤️", label: "Partly cloudy" };
+    return {
+      icon: isDay ? "🌤️" : "🌙",
+      label: "Partly cloudy",
+    };
   }
 
   if (weatherCode === 3) {
@@ -16,7 +22,10 @@ export function getWeatherDetails(weatherCode: number) {
   }
 
   if ([51, 53, 55, 56, 57].includes(weatherCode)) {
-    return { icon: "🌦️", label: "Drizzle" };
+    return {
+      icon: isDay ? "🌦️" : "🌧️",
+      label: "Drizzle",
+    };
   }
 
   if ([61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) {
@@ -34,7 +43,10 @@ export function getWeatherDetails(weatherCode: number) {
   return { icon: "🌡️", label: "Unknown" };
 }
 
-export function getBackgroundClass(weatherCode: number) {
+export function getBackgroundClass(weatherCode: number, isDay = true) {
+  if (!isDay && ![95, 96, 99].includes(weatherCode)) {
+    return "bg-gradient-to-b from-slate-950 via-slate-800 to-indigo-950";
+  }
   if (weatherCode === 0) {
     return "bg-gradient-to-b from-sky-300 via-sky-100 to-white";
   }
